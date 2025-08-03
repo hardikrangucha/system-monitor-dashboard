@@ -26,7 +26,7 @@ A clean and responsive **System Resource Monitoring Dashboard** built with **Pyt
 
 ---
 
-### 📸 Screenshot
+### 📸 Screenshot of Dashboard
 
 ![Dashboard Screenshot](./screenshot.jpeg)
 
@@ -48,7 +48,7 @@ A clean and responsive **System Resource Monitoring Dashboard** built with **Pyt
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/system-monitor-dashboard.git
+git clone https://github.com/hardikrangucha/system-monitor-dashboard.git
 cd system-monitor-dashboard
 ```
 
@@ -80,6 +80,6 @@ I built this entire project in **one day**, starting from Python basics to advan
 
 ### 🙏 Credits
 
-Thanks to @LondheShubham153(https://github.com/LondheShubham153) for the amazing youtube video on DevOps for python and original tutorial that helped me learn and build this dashboard from scratch.
+Thanks to @LondheShubham153 (https://github.com/LondheShubham153) for the amazing youtube video on DevOps for python and original tutorial that helped me learn and build this dashboard from scratch.
 
 ---
