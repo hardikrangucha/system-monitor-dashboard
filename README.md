@@ -76,12 +76,12 @@ http://localhost:5001
 
 ### 🏅 Certificate
 
-I built this entire project in **one day**, starting from Python basics to advanced DevOps tasks. I also earned a certificate for completing the tutorial — [View Certificate Here](#) *(replace with actual link)*.
+I built this entire project in **one day**, starting from Python basics to advanced DevOps tasks. I also earned a certificate for completing the tutorial
 
 ---
 
 ### 🙏 Credits
 
-Thanks to @LondheShubham153 for the amazing youtube video on DevOps for python and original tutorial that helped me learn and build this dashboard from scratch.
+Thanks to @LondheShubham153(https://github.com/LondheShubham153) for the amazing youtube video on DevOps for python and original tutorial that helped me learn and build this dashboard from scratch.
 
 ---
