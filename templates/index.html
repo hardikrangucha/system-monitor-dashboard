@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor | Real-time CPU & RAM Dashboard</title>
+    <style>
+        /* ===== CSS RESET & BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Color Palette - Apple-inspired sophisticated dark theme */
+            --primary-bg: #000000;
+            --secondary-bg: #1c1c1e;
+            --tertiary-bg: #2c2c2e;
+            --accent-blue: #007aff;
+            --accent-green: #30d158;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b30;
+            --text-primary: #ffffff;
+            --text-secondary: #99999d;
+            --text-tertiary: #636366;
+            --border-color: #38383a;
+            --gradient-primary: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%);
+            --gradient-secondary: linear-gradient(135deg, #30d158 0%, #64d2ff 100%);
+            
+            /* Typography */
+            --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            --font-weight-light: 300;
+            --font-weight-regular: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+            
+            /* Spacing & Layout */
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-xxl: 4rem;
+            
+            /* Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 0.15s ease-out;
+            --transition-medium: 0.3s ease-out;
+            --transition-slow: 0.5s ease-out;
+        }
+
+        /* ===== GLOBAL STYLES ===== */
+        body {
+            font-family: var(--font-primary);
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER STYLES ===== */
+        .header {
+            text-align: center;
+            padding: var(--spacing-xxl) var(--spacing-lg) var(--spacing-xl);
+            background: linear-gradient(180deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: var(--font-weight-bold);
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--spacing-sm);
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-regular);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ===== CONTROL PANEL STYLES ===== */
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-lg);
+            background: var(--secondary-bg);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .toggle-button {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-md);
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+        }
+
+        .toggle-button:hover {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
+        }
+
+        .toggle-button.paused {
+            background: var(--accent-orange);
+            border-color: var(--accent-orange);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.paused {
+            background: var(--accent-orange);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ===== MAIN DASHBOARD STYLES ===== */
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-xl) var(--spacing-lg);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: var(--spacing-xl);
+        }
+
+        /* ===== METRIC CARD STYLES ===== */
+        .metric-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-medium);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-blue);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity var(--transition-medium);
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .metric-card.cpu::before {
+            background: var(--gradient-primary);
+        }
+
+        .metric-card.ram::before {
+            background: var(--gradient-secondary);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+        }
+
+        .card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .card-icon.cpu {
+            background: var(--gradient-primary);
+        }
+
+        .card-icon.ram {
+            background: var(--gradient-secondary);
+        }
+
+        /* ===== CIRCULAR PROGRESS STYLES ===== */
+        .progress-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto var(--spacing-lg);
+        }
+
+        .progress-circle {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .progress-track {
+            fill: none;
+            stroke: var(--tertiary-bg);
+            stroke-width: 8;
+        }
+
+        .progress-bar {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dasharray var(--transition-medium);
+        }
+
+        .progress-bar.cpu {
+            stroke: url(#cpuGradient);
+        }
+
+        .progress-bar.ram {
+            stroke: url(#ramGradient);
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-percentage {
+            font-size: 2.5rem;
+            font-weight: var(--font-weight-bold);
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .progress-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+            margin-top: var(--spacing-xs);
+        }
+
+        /* ===== METRICS GRID STYLES ===== */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .metric-item {
+            background: var(--tertiary-bg);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+            transition: all var(--transition-fast);
+        }
+
+        .metric-item:hover {
+            background: var(--border-color);
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ===== ERROR MESSAGE STYLES ===== */
+        .error-message {
+            position: fixed;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: var(--accent-red);
+            color: white;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-weight: var(--font-weight-medium);
+            box-shadow: var(--shadow-lg);
+            transform: translateX(100%);
+            transition: transform var(--transition-medium);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .error-message.show {
+            transform: translateX(0);
+        }
+
+        .error-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-left: var(--spacing-sm);
+            opacity: 0.8;
+            transition: opacity var(--transition-fast);
+        }
+
+        .error-close:hover {
+            opacity: 1;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: var(--spacing-lg) var(--spacing-md);
+                gap: var(--spacing-lg);
+            }
+            
+            .header {
+                padding: var(--spacing-xl) var(--spacing-md) var(--spacing-lg);
+            }
+            
+            .progress-container {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .progress-percentage {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metric-card {
+                padding: var(--spacing-lg);
+            }
+            
+            .progress-container {
+                width: 140px;
+                height: 140px;
+            }
+            
+            .progress-percentage {
+                font-size: 1.75rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== ACCESSIBILITY ENHANCEMENTS ===== */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="header">
+        <h1>System Monitor</h1>
+        <p>Real-time CPU and RAM usage dashboard with elegant visualizations</p>
+    </header>
+
+    <!-- Control Panel -->
+    <section class="control-panel">
+        <div class="control-group">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText">Live Monitoring</span>
+        </div>
+        <button class="toggle-button" id="toggleButton">
+            <span id="toggleText">⏸ Pause</span>
+        </button>
+    </section>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard">
+        <!-- CPU Usage Card -->
+        <article class="metric-card cpu">
+            <header class="card-header">
+                <h2 class="card-title">CPU Usage</h2>
+                <div class="card-icon cpu">⚡</div>
+            </header>
+            
+            <div class="progress-container">
+                <svg class="progress-circle" viewBox="0 0 200 200">
+                    <defs>
+                        <linearGradient id="cpuGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#007aff"/>
+                            <stop offset="100%" style="stop-color:#5ac8fa"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="progress-track" cx="100" cy="100" r="90"></circle>
+                    <circle class="progress-bar cpu" cx="100" cy="100" r="90" id="cpuProgressBar"></circle>
+                </svg>
+                <div class="progress-text">
+                    <div class="progress-percentage" id="cpuPercentage">0%</div>
+                    <div class="progress-label">Current Load</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-value" id="cpuCores">8</div>
+                    <div class="metric-label">Cores</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="cpuThreads">16</div>
+                    <div class="metric-label">Threads</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="cpuFreq">3.2 GHz</div>
+                    <div class="metric-label">Frequency</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="cpuTemp">42°C</div>
+                    <div class="metric-label">Temperature</div>
+                </div>
+            </div>
+        </article>
+
+        <!-- RAM Usage Card -->
+        <article class="metric-card ram">
+            <header class="card-header">
+                <h2 class="card-title">Memory Usage</h2>
+                <div class="card-icon ram">💾</div>
+            </header>
+            
+            <div class="progress-container">
+                <svg class="progress-circle" viewBox="0 0 200 200">
+                    <defs>
+                        <linearGradient id="ramGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#30d158"/>
+                            <stop offset="100%" style="stop-color:#64d2ff"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="progress-track" cx="100" cy="100" r="90"></circle>
+                    <circle class="progress-bar ram" cx="100" cy="100" r="90" id="ramProgressBar"></circle>
+                </svg>
+                <div class="progress-text">
+                    <div class="progress-percentage" id="ramPercentage">0%</div>
+                    <div class="progress-label">In Use</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-value" id="ramUsed">0 GB</div>
+                    <div class="metric-label">Used</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="ramTotal">32 GB</div>
+                    <div class="metric-label">Total</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="ramFree">32 GB</div>
+                    <div class="metric-label">Available</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="ramCached">0 GB</div>
+                    <div class="metric-label">Cached</div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Error Message Container -->
+    <div class="error-message" id="errorMessage">
+        <span id="errorText"></span>
+        <button class="error-close" id="errorClose">×</button>
+    </div>
+
+    <!-- Screen Reader Announcements -->
+    <div aria-live="polite" aria-atomic="true" class="sr-only" id="announcements"></div>
+
+    <script>
+        /**
+         * System Monitor Dashboard
+         * Professional CPU and RAM usage dashboard with real-time data visualization
+         * Connected to Flask backend with psutil for real system metrics
+         * 
+         * @author Senior Frontend Developer
+         * @version 2.0.0 - Real Data Integration
+         */
+
+        class SystemMonitor {
+            constructor() {
+                // Configuration constants
+                this.UPDATE_INTERVAL = 1000; // 1 second
+                this.CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 90; // r = 90
+                this.API_ENDPOINT = '/api/system-stats'; // Flask API endpoint
+                this.MAX_RETRIES = 3;
+                
+                // State management
+                this.isRunning = true;
+                this.updateTimer = null;
+                this.lastCpuValue = 0;
+                this.lastRamValue = 0;
+                this.retryCount = 0;
+                this.isConnected = true;
+                
+                // DOM element references
+                this.elements = {
+                    // Control elements
+                    toggleButton: document.getElementById('toggleButton'),
+                    toggleText: document.getElementById('toggleText'),
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    statusText: document.getElementById('statusText'),
+                    
+                    // CPU elements
+                    cpuPercentage: document.getElementById('cpuPercentage'),
+                    cpuProgressBar: document.getElementById('cpuProgressBar'),
+                    cpuCores: document.getElementById('cpuCores'),
+                    cpuThreads: document.getElementById('cpuThreads'),
+                    cpuFreq: document.getElementById('cpuFreq'),
+                    cpuTemp: document.getElementById('cpuTemp'),
+                    
+                    // RAM elements
+                    ramPercentage: document.getElementById('ramPercentage'),
+                    ramProgressBar: document.getElementById('ramProgressBar'),
+                    ramUsed: document.getElementById('ramUsed'),
+                    ramTotal: document.getElementById('ramTotal'),
+                    ramFree: document.getElementById('ramFree'),
+                    ramCached: document.getElementById('ramCached'),
+                    
+                    // Error handling
+                    errorMessage: document.getElementById('errorMessage'),
+                    errorText: document.getElementById('errorText'),
+                    errorClose: document.getElementById('errorClose'),
+                    
+                    // Accessibility
+                    announcements: document.getElementById('announcements')
+                };
+                
+                this.init();
+            }
+            
+            /**
+             * Initialize the dashboard
+             */
+            /**
+             * Initialize the dashboard
+             */
+            init() {
+                this.setupEventListeners();
+                this.setupProgressBars();
+                this.startMonitoring();
+                
+                // Test initial connection
+                this.testConnection();
+            }
+            
+            /**
+             * Test initial connection to the API
+             */
+            async testConnection() {
+                try {
+                    const response = await fetch('/api/health');
+                    if (response.ok) {
+                        console.log('✅ Connected to Flask backend successfully');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Backend connection test failed:', error);
+                    this.showError('Unable to connect to system monitoring service');
+                }
+            }
+            
+            /**
+             * Set up event listeners for user interactions
+             */
+            setupEventListeners() {
+                // Toggle button functionality
+                this.elements.toggleButton.addEventListener('click', () => {
+                    this.toggleMonitoring();
+                });
+                
+                // Error message close button
+                this.elements.errorClose.addEventListener('click', () => {
+                    this.hideError();
+                });
+                
+                // Keyboard accessibility for error message
+                this.elements.errorMessage.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideError();
+                    }
+                });
+            }
+            
+            /**
+             * Initialize progress bar stroke properties
+             */
+            setupProgressBars() {
+                // Set initial stroke-dasharray for both progress bars
+                [this.elements.cpuProgressBar, this.elements.ramProgressBar].forEach(bar => {
+                    bar.style.strokeDasharray = this.CIRCLE_CIRCUMFERENCE;
+                    bar.style.strokeDashoffset = this.CIRCLE_CIRCUMFERENCE;
+                });
+            }
+            
+            /**
+             * Fetch real system data from Flask API
+             */
+            async fetchSystemData() {
+                try {
+                    const response = await fetch(this.API_ENDPOINT, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.message);
+                    }
+                    
+                    // Reset retry count on successful fetch
+                    this.retryCount = 0;
+                    this.isConnected = true;
+                    
+                    return data;
+                    
+                } catch (error) {
+                    this.retryCount++;
+                    this.isConnected = false;
+                    
+                    console.error('Failed to fetch system data:', error);
+                    
+                    if (this.retryCount >= this.MAX_RETRIES) {
+                        this.showError(`Connection lost: ${error.message}`);
+                    }
+                    
+                    // Return fallback data structure
+                    return {
+                        cpu: {
+                            usage: this.lastCpuValue,
+                            cores: 'N/A',
+                            threads: 'N/A',
+                            frequency: 'N/A',
+                            temperature: 'N/A'
+                        },
+                        memory: {
+                            usage: this.lastRamValue,
+                            total: 'N/A',
+                            used: 'N/A',
+                            available: 'N/A',
+                            cached: 'N/A'
+                        },
+                        alerts: {
+                            high_cpu: false,
+                            high_memory: false,
+                            message: null
+                        }
+                    };
+                }
+            }
+            
+            /**
+             * Update static system metrics that don't change frequently
+             */
+            updateStaticMetrics(data) {
+                if (data.cpu.cores !== 'N/A') {
+                    this.elements.cpuCores.textContent = data.cpu.cores;
+                }
+                if (data.cpu.threads !== 'N/A') {
+                    this.elements.cpuThreads.textContent = data.cpu.threads;
+                }
+                if (data.memory.total !== 'N/A') {
+                    this.elements.ramTotal.textContent = `${data.memory.total} GB`;
+                }
+            }
+            
+            /**
+             * Update progress bar visualization
+             */
+            updateProgressBar(element, percentage) {
+                const offset = this.CIRCLE_CIRCUMFERENCE - (percentage / 100) * this.CIRCLE_CIRCUMFERENCE;
+                element.style.strokeDashoffset = offset;
+            }
+            
+            /**
+             * Update CPU metrics and visualization with real data
+             */
+            updateCpuMetrics(cpuData) {
+                try {
+                    // Update percentage display
+                    this.elements.cpuPercentage.textContent = `${cpuData.usage}%`;
+                    
+                    // Update progress bar
+                    this.updateProgressBar(this.elements.cpuProgressBar, cpuData.usage);
+                    
+                    // Update additional metrics
+                    this.elements.cpuFreq.textContent = cpuData.frequency !== 'N/A' ? `${cpuData.frequency} GHz` : 'N/A';
+                    this.elements.cpuTemp.textContent = cpuData.temperature !== 'N/A' ? `${cpuData.temperature}°C` : 'N/A';
+                    
+                    // Store for comparison
+                    const previousValue = this.lastCpuValue;
+                    this.lastCpuValue = cpuData.usage;
+                    
+                    // Accessibility announcement for significant changes
+                    if (Math.abs(cpuData.usage - previousValue) > 15) {
+                        this.announceToScreenReader(`CPU usage ${cpuData.usage > previousValue ? 'increased' : 'decreased'} to ${cpuData.usage}%`);
+                    }
+                    
+                } catch (error) {
+                    this.showError('Failed to update CPU metrics');
+                    console.error('CPU update error:', error);
+                }
+            }
+            
+            /**
+             * Update RAM metrics and visualization with real data
+             */
+            updateRamMetrics(memoryData) {
+                try {
+                    // Update percentage display
+                    this.elements.ramPercentage.textContent = `${memoryData.usage}%`;
+                    
+                    // Update progress bar
+                    this.updateProgressBar(this.elements.ramProgressBar, memoryData.usage);
+                    
+                    // Update additional metrics
+                    this.elements.ramUsed.textContent = memoryData.used !== 'N/A' ? `${memoryData.used} GB` : 'N/A';
+                    this.elements.ramFree.textContent = memoryData.available !== 'N/A' ? `${memoryData.available} GB` : 'N/A';
+                    this.elements.ramCached.textContent = memoryData.cached !== 'N/A' ? `${memoryData.cached} GB` : 'N/A';
+                    
+                    // Store for comparison
+                    this.lastRamValue = memoryData.usage;
+                    
+                } catch (error) {
+                    this.showError('Failed to update RAM metrics');
+                    console.error('RAM update error:', error);
+                }
+            }
+            
+            /**
+             * Handle system alerts from the backend
+             */
+            handleSystemAlerts(alerts) {
+                if (alerts.message && this.isConnected) {
+                    this.showError(alerts.message);
+                }
+            }
+            
+            /**
+             * Main update cycle for all metrics using real API data
+             */
+            async updateMetrics() {
+                if (!this.isRunning) return;
+                
+                try {
+                    const systemData = await this.fetchSystemData();
+                    
+                    // Update metrics with real data
+                    this.updateCpuMetrics(systemData.cpu);
+                    this.updateRamMetrics(systemData.memory);
+                    this.updateStaticMetrics(systemData);
+                    
+                    // Handle any system alerts
+                    if (systemData.alerts) {
+                        this.handleSystemAlerts(systemData.alerts);
+                    }
+                    
+                    // Update connection status in UI
+                    this.updateConnectionStatus();
+                    
+                } catch (error) {
+                    console.error('Update cycle error:', error);
+                    this.showError('Failed to update system metrics');
+                }
+            }
+            
+            /**
+             * Update connection status indicator
+             */
+            updateConnectionStatus() {
+                const statusElement = this.elements.statusText;
+                
+                if (this.isConnected && this.isRunning) {
+                    statusElement.textContent = 'Live Monitoring';
+                    statusElement.style.color = 'var(--accent-green)';
+                } else if (!this.isConnected) {
+                    statusElement.textContent = 'Connection Lost';
+                    statusElement.style.color = 'var(--accent-red)';
+                } else {
+                    statusElement.textContent = 'Monitoring Paused';
+                    statusElement.style.color = 'var(--accent-orange)';
+                }
+            }
+            
+            /**
+             * Start the monitoring process
+             */
+            startMonitoring() {
+                if (this.updateTimer) {
+                    clearInterval(this.updateTimer);
+                }
+                
+                this.isRunning = true;
+                this.updateMetrics(); // Initial update
+                this.updateTimer = setInterval(() => this.updateMetrics(), this.UPDATE_INTERVAL);
+                
+                this.updateControlUI();
+                this.updateConnectionStatus();
+            }
+            
+            /**
+             * Stop the monitoring process
+             */
+            stopMonitoring() {
+                this.isRunning = false;
+                if (this.updateTimer) {
+                    clearInterval(this.updateTimer);
+                    this.updateTimer = null;
+                }
+                
+                this.updateControlUI();
+                this.updateConnectionStatus();
+            }
+            
+            /**
+             * Toggle monitoring on/off
+             */
+            toggleMonitoring() {
+                if (this.isRunning) {
+                    this.stopMonitoring();
+                    this.announceToScreenReader('Monitoring paused');
+                } else {
+                    this.startMonitoring();
+                    this.announceToScreenReader('Monitoring resumed');
+                }
+            }
+            
+            /**
+             * Update control panel UI based on current state
+             */
+            updateControlUI() {
+                if (this.isRunning) {
+                    this.elements.toggleText.textContent = '⏸ Pause';
+                    this.elements.toggleButton.classList.remove('paused');
+                    this.elements.statusIndicator.classList.remove('paused');
+                } else {
+                    this.elements.toggleText.textContent = '▶ Resume';
+                    this.elements.toggleButton.classList.add('paused');
+                    this.elements.statusIndicator.classList.add('paused');
+                }
+            }
+            
+            /**
+             * Show error message to user
+             */
+            showError(message) {
+                this.elements.errorText.textContent = message;
+                this.elements.errorMessage.classList.add('show');
+                
+                // Auto-hide error after
