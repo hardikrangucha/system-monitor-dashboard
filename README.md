@@ -28,9 +28,7 @@ A clean and responsive **System Resource Monitoring Dashboard** built with **Pyt
 
 ### 📸 Screenshot
 
-> *(Add this image in your GitHub repo and link it here)*
-
-![Dashboard Screenshot](./screenshot.jpg)
+![Dashboard Screenshot](./screenshot.jpeg)
 
 ---
 
